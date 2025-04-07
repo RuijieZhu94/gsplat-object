@@ -363,7 +363,7 @@ def rasterization(
             if colors.dim() == 2:
                 # Turn [N, D] into [C, N, D]
                 colors = colors.expand(C, -1, -1)
-                features = features.expand(C, -1, -1)
+                features = features.expand(C, -1, -1) if features is not None else None
             else:
                 # colors is already [C, N, D]
                 pass
@@ -1286,7 +1286,6 @@ def rasterization_2dgs(
         render_colors = render_colors[..., :-features.shape[-1]]
     else:
         render_features = None
-    # render_features = None
 
     render_normals_from_depth = None
     if render_mode in ["ED", "RGB+ED"]:
