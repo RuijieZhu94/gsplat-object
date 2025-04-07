@@ -51,6 +51,7 @@ def rasterization(
     distributed: bool = False,
     camera_model: Literal["pinhole", "ortho", "fisheye"] = "pinhole",
     covars: Optional[Tensor] = None,
+    features: Optional[Tensor] = None,
 ) -> Tuple[Tensor, Tensor, Dict]:
     """Rasterize a set of 3D Gaussians (N) to a batch of image planes (C).
 
@@ -362,6 +363,7 @@ def rasterization(
             if colors.dim() == 2:
                 # Turn [N, D] into [C, N, D]
                 colors = colors.expand(C, -1, -1)
+                features = features.expand(C, -1, -1)
             else:
                 # colors is already [C, N, D]
                 pass
@@ -479,11 +481,14 @@ def rasterization(
 
     # Rasterize to pixels
     if render_mode in ["RGB+D", "RGB+ED"]:
-        colors = torch.cat((colors, depths[..., None]), dim=-1)
-        if backgrounds is not None:
-            backgrounds = torch.cat(
-                [backgrounds, torch.zeros(C, 1, device=backgrounds.device)], dim=-1
-            )
+        if features is not None:
+            colors = torch.cat((colors, depths[..., None], features), dim=-1)            
+            if backgrounds is not None:
+                backgrounds = torch.cat([backgrounds, torch.zeros(C, 1+features.shape[-1], device=backgrounds.device)], dim=-1)
+        else:
+            colors = torch.cat((colors, depths[..., None]), dim=-1)
+            if backgrounds is not None:
+                backgrounds = torch.cat([backgrounds, torch.zeros(C, 1, device=backgrounds.device)], dim=-1)
     elif render_mode in ["D", "ED"]:
         colors = depths[..., None]
         if backgrounds is not None:
@@ -570,6 +575,11 @@ def rasterization(
             absgrad=absgrad,
         )
     if render_mode in ["ED", "RGB+ED"]:
+        if features is not None:
+            render_features = render_colors[..., -features.shape[-1]:]
+            render_colors = render_colors[..., :-features.shape[-1]]
+        else:
+            render_features = None
         # normalize the accumulated depth to get the expected depth
         render_colors = torch.cat(
             [
@@ -579,7 +589,7 @@ def rasterization(
             dim=-1,
         )
 
-    return render_colors, render_alphas, meta
+    return render_colors, render_alphas, render_features, meta
 
 
 def _rasterization(
@@ -1022,6 +1032,7 @@ def rasterization_2dgs(
     absgrad: bool = False,
     distloss: bool = False,
     depth_mode: Literal["expected", "median"] = "expected",
+    features: Optional[Tensor] = None,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Dict]:
     """Rasterize a set of 2D Gaussians (N) to a batch of image planes (C).
 
@@ -1215,9 +1226,13 @@ def rasterization_2dgs(
         colors = (
             colors[gaussian_ids] if packed else colors.expand(C, *([-1] * colors.dim()))
         )  # [nnz, D] or [C, N, 3]
+        features = (
+            features[gaussian_ids] if packed else features.expand(C, *([-1] * features.dim()))
+        ) if features is not None else None
     else:
         if packed:
             colors = colors[camera_ids, gaussian_ids, :]
+            features = features[camera_ids, gaussian_ids, :] if features is not None else None
     if sh_degree is not None:  # SH coefficients
         camtoworlds = torch.inverse(viewmats)
         if packed:
@@ -1232,8 +1247,11 @@ def rasterization_2dgs(
 
     # Rasterize to pixels
     if render_mode in ["RGB+D", "RGB+ED"]:
-        colors = torch.cat((colors, depths[..., None]), dim=-1)
-        # backgrounds = torch.cat((backgrounds, torch.zeros((C, 1), device="cuda")), dim=-1)
+        if features is None:
+            colors = torch.cat((colors, depths[..., None]), dim=-1)
+        else:
+            colors = torch.cat((colors, depths[..., None], features), dim=-1)
+            backgrounds = torch.cat((backgrounds, torch.zeros((C, features.shape[-1]), device="cuda")), dim=-1)
     elif render_mode in ["D", "ED"]:
         colors = depths[..., None]
     else:  # RGB
@@ -1262,6 +1280,14 @@ def rasterization_2dgs(
         absgrad=absgrad,
         distloss=distloss,
     )
+
+    if features is not None:
+        render_features = render_colors[..., -features.shape[-1]:]
+        render_colors = render_colors[..., :-features.shape[-1]]
+    else:
+        render_features = None
+    # render_features = None
+
     render_normals_from_depth = None
     if render_mode in ["ED", "RGB+ED"]:
         # normalize the accumulated depth to get the expected depth
@@ -1317,6 +1343,7 @@ def rasterization_2dgs(
         render_normals_from_depth,
         render_distort,
         render_median,
+        render_features,
         meta,
     )
 
