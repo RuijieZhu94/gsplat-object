@@ -677,7 +677,7 @@
             <span class="k">if</span> <span class="n">colors</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="c1"># Turn [N, D] into [C, N, D]</span>
                 <span class="n">colors</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-                <span class="n">features</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">features</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># colors is already [C, N, D]</span>
                 <span class="k">pass</span>
@@ -1606,7 +1606,6 @@
         <span class="n">render_colors</span> <span class="o">=</span> <span class="n">render_colors</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">render_features</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="c1"># render_features = None</span>
 
     <span class="n">render_normals_from_depth</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">render_mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ED&quot;</span><span class="p">,</span> <span class="s2">&quot;RGB+ED&quot;</span><span class="p">]:</span>
