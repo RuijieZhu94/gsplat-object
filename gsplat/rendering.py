@@ -482,13 +482,23 @@ def rasterization(
     # Rasterize to pixels
     if render_mode in ["RGB+D", "RGB+ED"]:
         if features is not None:
-            colors = torch.cat((colors, depths[..., None], features), dim=-1)            
+            colors = torch.cat((colors, depths[..., None], features), dim=-1)
             if backgrounds is not None:
-                backgrounds = torch.cat([backgrounds, torch.zeros(C, 1+features.shape[-1], device=backgrounds.device)], dim=-1)
+                backgrounds = torch.cat(
+                    [
+                        backgrounds,
+                        torch.zeros(
+                            C, 1 + features.shape[-1], device=backgrounds.device
+                        ),
+                    ],
+                    dim=-1,
+                )
         else:
             colors = torch.cat((colors, depths[..., None]), dim=-1)
             if backgrounds is not None:
-                backgrounds = torch.cat([backgrounds, torch.zeros(C, 1, device=backgrounds.device)], dim=-1)
+                backgrounds = torch.cat(
+                    [backgrounds, torch.zeros(C, 1, device=backgrounds.device)], dim=-1
+                )
     elif render_mode in ["D", "ED"]:
         colors = depths[..., None]
         if backgrounds is not None:
@@ -576,8 +586,8 @@ def rasterization(
         )
     if render_mode in ["ED", "RGB+ED"]:
         if features is not None:
-            render_features = render_colors[..., -features.shape[-1]:]
-            render_colors = render_colors[..., :-features.shape[-1]]
+            render_features = render_colors[..., -features.shape[-1] :]
+            render_colors = render_colors[..., : -features.shape[-1]]
         else:
             render_features = None
         # normalize the accumulated depth to get the expected depth
@@ -1226,13 +1236,20 @@ def rasterization_2dgs(
         colors = (
             colors[gaussian_ids] if packed else colors.expand(C, *([-1] * colors.dim()))
         )  # [nnz, D] or [C, N, 3]
-        features = (
-            features[gaussian_ids] if packed else features.expand(C, *([-1] * features.dim()))
-        ) if features is not None else None
+        if features is not None:
+            features = (
+                features[gaussian_ids]
+                if packed
+                else features.expand(C, *([-1] * features.dim()))
+            )
+        else:
+            features = None
     else:
         if packed:
             colors = colors[camera_ids, gaussian_ids, :]
-            features = features[camera_ids, gaussian_ids, :] if features is not None else None
+            features = (
+                features[camera_ids, gaussian_ids, :] if features is not None else None
+            )
     if sh_degree is not None:  # SH coefficients
         camtoworlds = torch.inverse(viewmats)
         if packed:
@@ -1251,7 +1268,10 @@ def rasterization_2dgs(
             colors = torch.cat((colors, depths[..., None]), dim=-1)
         else:
             colors = torch.cat((colors, depths[..., None], features), dim=-1)
-            backgrounds = torch.cat((backgrounds, torch.zeros((C, features.shape[-1]), device="cuda")), dim=-1)
+            backgrounds = torch.cat(
+                (backgrounds, torch.zeros((C, features.shape[-1]), device="cuda")),
+                dim=-1,
+            )
     elif render_mode in ["D", "ED"]:
         colors = depths[..., None]
     else:  # RGB
@@ -1282,8 +1302,8 @@ def rasterization_2dgs(
     )
 
     if features is not None:
-        render_features = render_colors[..., -features.shape[-1]:]
-        render_colors = render_colors[..., :-features.shape[-1]]
+        render_features = render_colors[..., -features.shape[-1] :]
+        render_colors = render_colors[..., : -features.shape[-1]]
     else:
         render_features = None
 
