@@ -1,15 +1,82 @@
-# gsplat
+# gsplat-object
 
-[![Core Tests.](https://github.com/nerfstudio-project/gsplat/actions/workflows/core_tests.yml/badge.svg?branch=main)](https://github.com/nerfstudio-project/gsplat/actions/workflows/core_tests.yml)
-[![Docs](https://github.com/nerfstudio-project/gsplat/actions/workflows/doc.yml/badge.svg?branch=main)](https://github.com/nerfstudio-project/gsplat/actions/workflows/doc.yml)
+[![Core Tests.](https://github.com/RuijieZhu94/gsplat-object/actions/workflows/core_tests.yml/badge.svg?branch=main)](https://github.com/RuijieZhu94/gsplat-object/actions/workflows/core_tests.yml)
+[![Docs](https://github.com/RuijieZhu94/gsplat-object/actions/workflows/doc.yml/badge.svg?branch=main)](https://github.com/RuijieZhu94/gsplat-object/actions/workflows/doc.yml)
 
-[http://www.gsplat.studio/](http://www.gsplat.studio/)
+> [http://www.gsplat.studio/](http://www.gsplat.studio/)
 
-gsplat is an open-source library for CUDA accelerated rasterization of gaussians with python bindings. It is inspired by the SIGGRAPH paper [3D Gaussian Splatting for Real-Time Rendering of Radiance Fields](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/), but we’ve made gsplat even faster, more memory efficient, and with a growing list of new features! 
+> gsplat is an open-source library for CUDA accelerated rasterization of gaussians with python bindings. It is inspired by the SIGGRAPH paper [3D Gaussian Splatting for Real-Time Rendering of Radiance Fields](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/), but we’ve made gsplat even faster, more memory efficient, and with a growing list of new features! 
 
 <div align="center">
-  <video src="https://github.com/nerfstudio-project/gsplat/assets/10151885/64c2e9ca-a9a6-4c7e-8d6f-47eeacd15159" width="100%" />
+  <video src="https://github.com/RuijieZhu94/gsplat-object/assets/10151885/64c2e9ca-a9a6-4c7e-8d6f-47eeacd15159" width="100%" />
 </div>
+
+## Difference with the original gsplat
+
+- **Support variable-length feature splatting (for both 3DGS and 2DGS):**
+We define a Gaussian feature of arbitrary length. During splatting, this feature is projected to 2D via alpha blending like other Gaussian attributes.
+
+### 3DGS
+```diff
+def rasterization(
+    means: Tensor,  # [N, 3]
+    quats: Tensor,  # [N, 4]
+    scales: Tensor,  # [N, 3]
+    opacities: Tensor,  # [N]
+    colors: Tensor,  # [(C,) N, D] or [(C,) N, K, 3]
+    viewmats: Tensor,  # [C, 4, 4]
+    Ks: Tensor,  # [C, 3, 3]
+    width: int,
+    height: int,
+    near_plane: float = 0.01,
+    far_plane: float = 1e10,
+    radius_clip: float = 0.0,
+    eps2d: float = 0.3,
+    sh_degree: Optional[int] = None,
+    packed: bool = True,
+    tile_size: int = 16,
+    backgrounds: Optional[Tensor] = None,
+    render_mode: Literal["RGB", "D", "ED", "RGB+D", "RGB+ED"] = "RGB",
+    sparse_grad: bool = False,
+    absgrad: bool = False,
+    rasterize_mode: Literal["classic", "antialiased"] = "classic",
+    channel_chunk: int = 32,
+    distributed: bool = False,
+    camera_model: Literal["pinhole", "ortho", "fisheye"] = "pinhole",
+    covars: Optional[Tensor] = None,
++   features: Optional[Tensor] = None,
+) -> Tuple[Tensor, Tensor, Dict]:
+```
+
+### 2DGS
+```diff
+def rasterization_2dgs(
+    means: Tensor,
+    quats: Tensor,
+    scales: Tensor,
+    opacities: Tensor,
+    colors: Tensor,
+    viewmats: Tensor,
+    Ks: Tensor,
+    width: int,
+    height: int,
+    near_plane: float = 0.01,
+    far_plane: float = 1e10,
+    radius_clip: float = 0.0,
+    eps2d: float = 0.3,
+    sh_degree: Optional[int] = None,
+    packed: bool = False,
+    tile_size: int = 16,
+    backgrounds: Optional[Tensor] = None,
+    render_mode: Literal["RGB", "D", "ED", "RGB+D", "RGB+ED"] = "RGB",
+    sparse_grad: bool = False,
+    absgrad: bool = False,
+    distloss: bool = False,
+    depth_mode: Literal["expected", "median"] = "expected",
++   features: Optional[Tensor] = None,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Dict]:
+```
+
 
 ## Installation
 
@@ -24,10 +91,10 @@ pip install gsplat
 Alternatively you can install gsplat from source. In this way it will build the CUDA code during installation.
 
 ```bash
-pip install git+https://github.com/nerfstudio-project/gsplat.git
+pip install git+https://github.com/RuijieZhu94/gsplat-object.git
 ```
 
-We also provide [pre-compiled wheels](https://docs.gsplat.studio/whl) for both linux and windows on certain python-torch-CUDA combinations (please check first which versions are supported). Note this way you would have to manually install [gsplat's dependencies](https://github.com/nerfstudio-project/gsplat/blob/6022cf45a19ee307803aaf1f19d407befad2a033/setup.py#L115). For example, to install gsplat for pytorch 2.0 and cuda 11.8 you can run
+We also provide [pre-compiled wheels](https://docs.gsplat.studio/whl) for both linux and windows on certain python-torch-CUDA combinations (please check first which versions are supported). Note this way you would have to manually install [gsplat's dependencies](https://github.com/RuijieZhu94/gsplat-object/blob/6022cf45a19ee307803aaf1f19d407befad2a033/setup.py#L115). For example, to install gsplat for pytorch 2.0 and cuda 11.8 you can run
 ```
 pip install ninja numpy jaxtyping rich
 pip install gsplat --index-url https://docs.gsplat.studio/whl/pt20cu118
